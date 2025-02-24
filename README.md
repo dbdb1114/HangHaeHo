@@ -1,28 +1,93 @@
 
-## GettingStart
-### Docker-Compose 구성
-```yam
-version: "3.7"
+### 🚀 프로젝트 소개
+![스크린샷 2025-02-24 오후 1 35 25](https://github.com/user-attachments/assets/d972f403-cf95-4cd8-aab2-48600ef28116)
+해당 서비스는 영화관의 상영정보 조회 및 예매 시스템을 구현한 소규모 프로젝트 입니다.
+
+### 🧑🏼‍💻 진행 인원 및 역할 <hr>
+BE: 유정현 ( 개인 프로젝트 )
+### 🕹️ 주요 구현 내용 <hr>
+- Redisson 기반 분산락 구현
+- Redis Caching 구현 
+- Redis LuaScript를 활용한 RateLimiter 구현
+- 예매 시스템 구현
+
+### 🛠️기술 스택<hr>
+- SpringBoot
+- Redis
+- MySQL
+- JPA / Hibernate
+- K6
+- Docker
+
+## 💽 데이터베이스 설계<hr>
+### DB ERD
+![스크린샷 2025-02-24 오후 2 53 26](https://github.com/user-attachments/assets/e5d891c0-c94e-4f92-8f77-e251cac822e0)
+
+DB설계에서는 구매나 관리자와 같은 것들은 크게 고려하지 않은 상태로 만들었습니다.
+기초적인 영화관의 기본 설계를 생각하면 만들었고 테이블별 설계에 대한 이야기는 아래에 드리겠습니다.
+### 테이블 및 내부 설계 사항
+**공통**<Br>
+CreateAt, creatBy, modifyAt, modifyBy 등의 칼럼을 두고, 생성일 및 생성자, 수정일 및 수정자 칼럼을 두었습니다.
+
+**Movie**<br>
+영화정보 테이블입니다. 고유 번호를 가지고, 제목(현재는 title로 변경했습니다.), 개봉일(open_day), 러닝타임(running_time), 썸네일 사진(thumbnail_src),
+장르id(genre_id), 상영등급(rating_id)를 두었습니다. movie 테이블을 설계하면서 장르와 상영등급을 따로 관리하는 것이 맞는지 고민했는데, 실제로
+영화 관련 사이트를 보면, 장르에 대한 설명, 상영등급에 관한 설명, 각각에 대한 이미지 등이 따로 관리될 때도 있습니다. 즉, 단순히 장르와 상영등급이 영화와
+1대1 매핑 관계처럼 보이지만 이 외의 쓰임도 있을 수 있는 것을 보아 따로 관리하기로 했습니다.
+
+**rating, genre**<br>
+상영등급과 장르 테이블입니다. movie테이블 설명드린 것 처럼 별도의 테이블로 준비했습니다. 현재 항해호 서비스에서는 장르명과 등급명 이외에 따로 관리되는 것은
+없기 때문에 각각의 id와 name만 부여했습니다.
+
+
+**showing**<br>
+movie 테이블 다음으로 가장 신경을 많이 쓴 테이블 입니다. 상영 정보는 참조할 내용이 많습니다. 상영관(screen_id), 영화(movie_id), 시작시간(st_time), 종료시간(ed_time) 하나하나 중요한 정보들입니다.
+그래서 더더욱 정규화를 지키고자 했습니다. 아직까지 신경이 쓰이는 것은 시간 st_time과 ed_time을 별도 테이블로 관리를 했어야 하는 약간의 아쉬움이 남지만,
+그 부분 까지는 좀 과하다는 생각이 들어 진행하진 않았습니다.
+
+**screen**<br>
+상영관 테이블 입니다. 지금은 상영관명(name)만을 가지고 있지만 실제로는 아마 대피공간 지도 라던가 대피공간 이미지 등 영화관에 갔을 때 나오는 상영관별로 사용하는
+고유 데이터들이 있습니다.
+
+**seats**<br>
+좌석 정보 테이블 입니다. 해당 좌석의 상영관과 좌석의 행(row, A-B-C-D-E),열(number)를 주요 데이터로 가지고 있습니다.
+
+**ticket**<br>
+ticket은 상영 정보(showing_id), 좌석 정보(seat_id), 판매 상태(status) 칼럼을 가지고 있습니다. 차후 추가적인 요구사항을 개발해 나가면서 좀 더
+수정 보완할 부분들이 가장 많이 생기지 않을까 생각이 드는 부분입니다.
+
+### 🐬 Docker Compose <hr> 
+```yaml
 services:
-  db:
-    image: postgres
+  hanghaeho-redis:
+    image: redis
     restart: always
     ports:
-      - "5499:5432"
+      - "6300:6379"
+  hanghaeho-mysql:
+    image: mysql:8
+    restart: always
+    ports:
+      - "3300:3306"
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: postgres
+      MYSQL_ROOT_PASSWORD: Tlmm3PjdJ*
     volumes:
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql # DDL 및 insert
-  app:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+  hanghaeho-application:
+    restart: always
     build:
       context: .  # Dockerfile이 있는 디렉토리
       dockerfile: Dockerfile  # 사용할 Dockerfile 지정 (옵션)
     ports:
-      - "8999:8080"
+      - "8000:8080"
     environment:
       SPRING_PROFILES_ACTIVE: dev
+    depends_on:
+      - hanghaeho-mysql
+      - hanghaeho-redis
 ```
 ### Docker-compose 실행
 ```shell
@@ -36,48 +101,9 @@ docker-compose -p dbdb1114_hanghaeho up
 http://localhost:8999
 
 
+## 🗺️ 아키텍처 및 모듈 구성<hr>
 
-## 데이터베이스 설계
-### DB ERD
-![스크린샷 2025-01-11 오전 11 09 51](https://github.com/user-attachments/assets/efcb6f9b-2f6d-4604-8172-73ed172cf113)
-DB설계에서는 구매나 관리자와 같은 것들은 크게 고려하지 않은 상태로 만들었습니다. 
-기초적인 영화관의 기본 설계를 생각하면 만들었고 테이블별 설계에 대한 이야기는 아래에 드리겠습니다. 
-### 테이블 및 내부 설계 사항 
-**공통**<Br>
-CreateAt, creatBy, modifyAt, modifyBy 등의 칼럼을 두고, 생성일 및 생성자, 수정일 및 수정자 칼럼을 두었습니다. 
-
-**Movie**<br>
-영화정보 테이블입니다. 고유 번호를 가지고, 제목(현재는 title로 변경했습니다.), 개봉일(open_day), 러닝타임(running_time), 썸네일 사진(thumbnail_src),
-장르id(genre_id), 상영등급(rating_id)를 두었습니다. movie 테이블을 설계하면서 장르와 상영등급을 따로 관리하는 것이 맞는지 고민했는데, 실제로
-영화 관련 사이트를 보면, 장르에 대한 설명, 상영등급에 관한 설명, 각각에 대한 이미지 등이 따로 관리될 때도 있습니다. 즉, 단순히 장르와 상영등급이 영화와
-1대1 매핑 관계처럼 보이지만 이 외의 쓰임도 있을 수 있는 것을 보아 따로 관리하기로 했습니다.
-
-**rating, genre**<br>
-상영등급과 장르 테이블입니다. movie테이블 설명드린 것 처럼 별도의 테이블로 준비했습니다. 현재 항해호 서비스에서는 장르명과 등급명 이외에 따로 관리되는 것은
-없기 때문에 각각의 id와 name만 부여했습니다. 
-
-
-**showing**<br>
-movie 테이블 다음으로 가장 신경을 많이 쓴 테이블 입니다. 상영 정보는 참조할 내용이 많습니다. 상영관(screen_id), 영화(movie_id), 시작시간(st_time), 종료시간(ed_time) 하나하나 중요한 정보들입니다.
-그래서 더더욱 정규화를 지키고자 했습니다. 아직까지 신경이 쓰이는 것은 시간 st_time과 ed_time을 별도 테이블로 관리를 했어야 하는 약간의 아쉬움이 남지만,
-그 부분 까지는 좀 과하다는 생각이 들어 진행하진 않았습니다.
-
-**screen**<br>
-상영관 테이블 입니다. 지금은 상영관명(name)만을 가지고 있지만 실제로는 아마 대피공간 지도 라던가 대피공간 이미지 등 영화관에 갔을 때 나오는 상영관별로 사용하는
-고유 데이터들이 있습니다. 
-
-**seats**<br>
-좌석 정보 테이블 입니다. 해당 좌석의 상영관과 좌석의 행(row, A-B-C-D-E),열(number)를 주요 데이터로 가지고 있습니다. 
-
-**ticket**<br>
-ticket은 상영 정보(showing_id), 좌석 정보(seat_id), 판매 상태(status) 칼럼을 가지고 있습니다. 차후 추가적인 요구사항을 개발해 나가면서 좀 더 
-수정 보완할 부분들이 가장 많이 생기지 않을까 생각이 드는 부분입니다. 
-
-
-
-## 아키텍처 및 모듈 구성
-
-### Layered Architecture
+### Layered Architecture<hr>
 
 LayeredArchitecture는 시스템 설계에 있어 가장 클리셰와 같은 아키텍처 입니다. 이번 프로젝트의 아키텍처를 정하면서 여러가지 아키텍처를 둘러보게 됐습니다. 헥사고날 아키텍처의 포트와 어댑트 개념도 있었고, 클린 아키텍처 개념도 있었습니다. 이 중에서 layered architecutre를 선정하게 된 이유는 가장 분리를 위한 철학이 강하다고 느껴졌습니다. 그럼에도 아키텍처 중에서 고민했던 헥사고날을 왜 하지 않게 됐는지도 함께 설명을 드리겠습니다.
 
@@ -90,8 +116,7 @@ LayeredArchitecture는 시스템 설계에 있어 가장 클리셰와 같은 아
 **왜 레이어드 아키텍처인가**<br>
 다른 아키텍처들도 그렇겠지만 레이어드 아키텍처는 코드를 작성하고, 개발하는 것에 있어 어느정도 강제적인 철학을 가집니다. 예를 들어 의존 관계는 단방향 이라던지 계층별로 독립적으로 존재하며, 인터페이스를 통해서만 통신해야 되는 것 등 어떤 명확한 rule을 제시합니다. 그런 좀 더 명확한 룰은 개발 생산성에 도움이 됩니다. 그래서 종합적으로 봤을 때 이번 항해호 프로젝트에서는 레이어드 아키텍처가 적절하다고 판단했습니다.
 
-### 5개의 멀티모듈
-
+### 5개의 멀티모듈<hr>
 ![스크린샷 2025-01-08 오전 9.12.35.png](https://github.com/user-attachments/assets/5b6fd9ab-56f4-4dc3-b3d4-de14888bf064)
 
 항해호 프로젝트는 총 5개의 멀티모듈을 가지기로 결정했습니다. LayerdArchitecture를 기반으로 한 모습이지만 거기서 책임과 역할을 조금 더 세분화하여 총 5개의 모듈로 구분했습니다. 레이어드 아키텍처의 철학을 지키면서 각 **모듈별로 의존 관계를 최소화하고 역할과 책임을 독립적으로 가질 수 있도록** 하였습니다. LayeredArchitecture는 모듈별로 **단방향의 의존 관계**를 가집니다. 이를 확실히 지키고자 의존관계를 아래와 같이 제한하기로 했습니다.
@@ -108,6 +133,10 @@ LayeredArchitecture는 시스템 설계에 있어 가장 클리셰와 같은 아
 | repo-rds | X | X | O | X | O |
 | repo-redis | X | X | X | O | O |
 | core | X | X | X | X | O |
+
+<details>
+  <summary style="cursor:pointer; font-size: 16px; font-weight: bold;">모듈별 상세 설명</summary>
+  <div markdown="1">
 
 ### core 모듈
 
@@ -172,16 +201,17 @@ app은 전반적으로 클라이언트와 요청을 주고받는 모듈입니다
 
 네이밍은 조금 더 신경 쓰겠지만 아무튼 이렇게 두 개로 나눠질 수 있지 않을까 싶습니다. 그땐 조금 더 세부적인 책임과 역할이 생긴 상태겠지요
 
+  </div>
+</details>
 
-## Redisson 기반 분산락 구현 관련 및 성능 테스트
 
+### 🎲 티켓 예메 시스템 Redisson 기반 분산락 구현 관련 및 성능 테스트 <hr>
 ### wait_time과 lease_time
-[ feat ] service module waitTime및 leaseTime 설정
-PEAK 타임을 고려한 최대 동시간대 요청 건수 계산
+<details>
+    <summary style="cursor:pointer; font-size: 14px; font-weight: bold;">PEAK 타임을 고려한 최대 동시간대 요청 건수 계산</summary>
+      <div markdown="1">
 
-----------------------------------------------------------
-Junghyun's hanghaeho
-
+비즈니스 환경 <br>
 인기영화: 100편 <br>
 비인기 영화: 489편 <br>
 상영정보: 모든 영화 1일 1회씩 상영, d+2 상영정보까지 전시
@@ -218,20 +248,25 @@ waitTime 동안 Lock을 기다릴 이유는 무엇인가? <br>
 >3. 단순 변심
 >4. ...
 
-사실상 1번 말고는 기다렸다가 재시도 해야하고, 1번의 경우 매우 적은 수일 것으로 예상되어 
+사실상 1번 말고는 기다렸다가 재시도 해야하고, 1번의 경우 매우 적은 수일 것으로 예상되어
 실제로 Lock 점유를 기다리는 시간이 그다지 길 필요가 없다는 판단됨.
-최악의 경우를 생각하여 앞의 요청 처리 두 건에서 lock점유 후 
+최악의 경우를 생각하여 앞의 요청 처리 두 건에서 lock점유 후
 다음 프로세스로 진행이 못 했을 때 까지만 보장하기로 함
 결과적으로 wait_time은 최대 요청 처리 시간의 두 배, lease_time은 wait_time의 2배로 선정<br>
+
+  </div>
+</details>
 
 **wait_time: 1초<br> 
 lease_time: 2초**
 
 
-### 성능 테스트 비교 
+### Redisson 분산락 성능 테스트 AOP vs 함수형
 #### AOP
 ![스크린샷 2025-02-02 오후 4 23 36](https://github.com/user-attachments/assets/e189898a-bb6e-47dc-bde3-e75b1823e66a)
 #### 함수형 
 ![스크린샷 2025-02-02 오후 4 32 20](https://github.com/user-attachments/assets/f795a4ca-b8f0-458f-9d65-30a7d0178375)
 #### 테스트 비교
 <img width="554" alt="스크린샷 2025-02-02 오후 9 46 33" src="https://github.com/user-attachments/assets/90207370-bce6-445f-a017-06faaf98ac0a" />
+
+### Indexing 전략 
