@@ -6,9 +6,11 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
+@Getter
 @Entity
 @SuperBuilder
 @NoArgsConstructor
@@ -18,11 +20,14 @@ public class Rating extends BaseEntity{
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	@Column(name = "rating_id", nullable = false)
-	private Long id;
+	private Long ratingId;
 
 	@Column(nullable = false)
-	private String name;
+	private String ratingName;
 
 	@Column(nullable = false)
 	private String img;
+
+	@Column(nullable = false)
+	private Integer age;
 }

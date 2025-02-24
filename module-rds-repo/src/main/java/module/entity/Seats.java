@@ -9,9 +9,11 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
+@Getter
 @Entity
 @SuperBuilder
 @NoArgsConstructor
@@ -21,15 +23,15 @@ public class Seats extends BaseEntity{
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	@Column(name = "seat_id")
-	private Long id;
+	private Long seatId;
 
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "screen_id", nullable = false)
 	private Screen screen;
 
 	@Column(nullable = false)
-	private String row;
+	private String seatRow;
 
 	@Column(nullable = false)
-	private Integer number;
+	private Integer seatNumber;
 }

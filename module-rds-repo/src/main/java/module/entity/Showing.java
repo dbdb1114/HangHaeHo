@@ -11,10 +11,12 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
-@ToString
+
+@Getter
 @Entity
 @SuperBuilder
 @NoArgsConstructor
@@ -24,7 +26,7 @@ public class Showing extends BaseEntity{
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	@Column(name = "showing_id")
-	private Long id;
+	private Long showingId;
 
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "movie_id", nullable = false)
@@ -34,6 +36,6 @@ public class Showing extends BaseEntity{
 	@JoinColumn(name = "screen_id", nullable = false)
 	private Screen screen;
 
-	private LocalDateTime stTime;
-	private LocalDateTime edTime;
+	private LocalDateTime showStTime;
+	private LocalDateTime showEdTime;
 }

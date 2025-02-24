@@ -1,22 +1,30 @@
-version: "3.7"
-
 services:
-  db:
-    image: postgres
+  hanghaeho-redis:
+    image: redis
     restart: always
     ports:
-      - "5499:5432"
+      - "6300:6379"
+  hanghaeho-mysql:
+    image: mysql:8
+    restart: always
+    ports:
+      - "3300:3306"
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: postgres
+      MYSQL_ROOT_PASSWORD: Tlmm3PjdJ*
     volumes:
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-  app:
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+  hanghaeho-application:
+    restart: always
     build:
       context: .  # Dockerfile이 있는 디렉토리
       dockerfile: Dockerfile  # 사용할 Dockerfile 지정 (옵션)
     ports:
-      - "8999:8080"
+      - "8000:8080"
     environment:
       SPRING_PROFILES_ACTIVE: dev
+    depends_on:
+      - hanghaeho-mysql
+      - hanghaeho-redis

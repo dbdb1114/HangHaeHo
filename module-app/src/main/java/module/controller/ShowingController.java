@@ -1,44 +1,44 @@
 package module.controller;
 
 import java.util.List;
-import java.util.Map;
 
-import org.modelmapper.ModelMapper;
+import org.hibernate.validator.constraints.Range;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import dto.internal.MovieDTO;
-import dto.internal.ShowingDTO;
+import dto.movie.MovieShowingResponse;
+import jakarta.annotation.Nullable;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import dto.external.ShowingResponse;
-import module.service.ShowingService;
+import module.config.ratelimit.limiters.ShowingSearchRateLimiter;
+import module.config.ratelimit.RateLimitWith;
+import module.service.showing.ShowingService;
 
-@Slf4j
-@RequiredArgsConstructor
 @RestController
-@RequestMapping(value = "/showing")
+@RequiredArgsConstructor
+@RequestMapping(value = "/api/v1/showings")
 public class ShowingController {
 
 	private final ShowingService showingService;
-	private final ModelMapper modelMapper;
 
-	@GetMapping("/today-info")
-	public ResponseEntity<Map> getTodayShowing() {
-		List<Map.Entry<MovieDTO, List<ShowingDTO>>> todayShowing = showingService.getTodayShowing();
-
-		List<Map<String, Object>> responseData = todayShowing.stream()
-			.map(entry -> Map.entry(entry.getKey(), entry.getValue().stream()
-				.map(val -> modelMapper.map(val, ShowingResponse.class)).toList()))
-			.map(entry -> Map.of("movie", entry.getKey(), "timeTable", entry.getValue()))
-			.toList();
-
-		if (responseData.isEmpty()) {
+	@GetMapping("/all")
+	@RateLimitWith(rateLimiter = ShowingSearchRateLimiter.class)
+	public ResponseEntity<List<MovieShowingResponse>> getTodayShowing(
+		@Valid @Size(max = 10, message = "제목 최대 길이는 255자 이내 입니다.")
+		@Nullable @RequestParam String title,
+		@Valid @Range(min = 2, max = 10, message = "존재하지 않는 장르 입니다.")
+		@Nullable @RequestParam Long genreId
+	) {
+		List<MovieShowingResponse> allShowingList = showingService.getTodayShowing(title, genreId);
+		if (allShowingList.isEmpty()) {
 			return ResponseEntity.noContent().build();
 		} else {
-			return ResponseEntity.ok(Map.of("data", responseData));
+			return ResponseEntity.ok(allShowingList);
 		}
 	}
+
 }
