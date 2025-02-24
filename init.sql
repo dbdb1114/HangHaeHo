@@ -1,5 +1,9 @@
 create DATABASE hanghaeho;
 
+-- 세션 및 클라이언트 인코딩 설정
+SET NAMES utf8mb4;
+SET CHARACTER SET utf8mb4;
+
 use hanghaeho;
 -- hanghaeho.genre definition
 
