@@ -35,8 +35,8 @@ import module.repository.user.UserRepository;
 public class TicketService {
 
 	private final ModelMapper modelMapper;
-	private final ShowingRepository showingRepository;
 	private final FunctionalDistributedLock functionalDistributedLock;
+	private final ShowingRepository showingRepository;
 	private final UserRepository userRepository;
 	private final TicketRepository ticketRepository;
 	private final SalesRepository salesRepository;
@@ -73,26 +73,26 @@ public class TicketService {
 		return ticketList;
 	}
 
-	public String reservation(Long showingId, String username, List<TicketDTO> ticketDtoList) {
+	public String reserve(Long showingId, String username, List<TicketDTO> ticketDtoList) {
 		// 티켓 및 사용자 유효성 검증
 		validateReservation(showingId, username, ticketDtoList);
 
-		return reservationWithFunctionalLock(username, ticketDtoList);
-		// return reservationWithAOPLock(username, ticketDtoList);
+		return reserveWithFunctionalLock(username, ticketDtoList);
+		// return reserveWithAOPLock(username, ticketDtoList);
 	}
 
 	@DistributedLock(
 		keyPrefix = "TICKET",
 		key = "#ticketDtoList.?[ticketId != null].![ticketId].toArray()"
 	)
-	public String reservationWithAOPLock(String username, List<TicketDTO> ticketDtoList) {
+	public String reserveWithAOPLock(String username, List<TicketDTO> ticketDtoList) {
 		List<Ticket> ticketList = ticketRepository.findAllByTicketIdIn(
 			ticketDtoList.stream().map(TicketDTO::getTicketId).toList());
 		User user = userRepository.findByUsername(username).get();
 
 		// 최종연산 [ 결제 완료 처리 ]
 		for (Ticket ticket : ticketList) {
-			ticket.setTicketStatus(TicketStatus.RESERVED);
+			ticket.reserve();
 			Sales sales = Sales.builder().price(9000)
 				.user(user).ticket(ticket)
 				.createBy("system").build();
@@ -101,7 +101,7 @@ public class TicketService {
 		return "success";
 	}
 
-	public String reservationWithFunctionalLock(String username, List<TicketDTO> ticketDtoList) {
+	public String reserveWithFunctionalLock(String username, List<TicketDTO> ticketDtoList) {
 		List<Long> keys = ticketDtoList.stream().map(TicketDTO::getTicketId).toList();
 		functionalDistributedLock.executeLock("TICKET:", keys, () -> {
 			List<Ticket> ticketList = ticketRepository.findAllByTicketIdIn(
@@ -136,8 +136,8 @@ public class TicketService {
 			throw BusinessError.RESERVATION_INVALID_TICKET.exception();
 
 		// 예외처리 [ 판매중이 아닌 티켓 ]
-		ticketList.forEach(ticket->{
-			if(ticket.getTicketStatus() != TicketStatus.ON_SALE){
+		ticketList.forEach(ticket -> {
+			if (ticket.getTicketStatus() != TicketStatus.ON_SALE) {
 				throw BusinessError.RESERVATION_NOT_ON_SALE_TICKET.exception();
 			}
 		});
@@ -163,9 +163,8 @@ public class TicketService {
 			throw BusinessError.RESERVATION_INVALID_AGE_FOR_MOVIE.exception();
 	}
 
-	private boolean isValidAge(int age, Movie movie){
+	private boolean isValidAge(int age, Movie movie) {
 		return age < movie.getRating().getAge();
 	}
-
 
 }

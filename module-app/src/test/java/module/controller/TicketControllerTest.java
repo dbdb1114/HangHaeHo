@@ -74,13 +74,13 @@ public class TicketControllerTest {
 		String jsonRequest = objectMapper.writeValueAsString(requestBody);
 
 		// when
-		mockMvc.perform(post("/api/v1/ticket/reservation")
+		mockMvc.perform(post("/api/v1/ticket/reserve")
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(jsonRequest))
 			.andExpect(status().is(HttpStatus.OK.value()));
 
 		// then
-		mockMvc.perform(post("/api/v1/ticket/reservation")
+		mockMvc.perform(post("/api/v1/ticket/reserve")
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(jsonRequest))
 			.andExpect(status().is(HttpStatus.BAD_REQUEST.value()));

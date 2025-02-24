@@ -42,7 +42,7 @@ public class SalesRepositoryTest {
 		// 티켓 조회
 		Ticket ticket = ticketRepository.findById(1L).get();
 		// 티켓 상태 변경
-		ticket.setTicketStatus(TicketStatus.RESERVED);
+		ticket.reserve();
 		// 구매내역 저장
 		salesRepository.save(Sales.builder()
 			.price(9000)

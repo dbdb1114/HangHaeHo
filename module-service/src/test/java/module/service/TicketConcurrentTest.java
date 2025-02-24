@@ -1,5 +1,8 @@
 package module.service;
 
+import static org.assertj.core.api.Assertions.*;
+
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -13,12 +16,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.Rollback;
 
+import dto.movie.MovieShowingResponse;
 import dto.ticket.TicketDTO;
 import dto.ticket.TicketStatus;
+import module.entity.Movie;
 import module.entity.Sales;
 import module.entity.Showing;
 import module.entity.Ticket;
+import module.repository.movie.MovieRepository;
 import module.repository.sales.SalesRepository;
+import module.repository.showing.ShowingRepository;
 import module.repository.ticket.TicketRepository;
 import module.service.ticket.TicketService;
 
@@ -31,19 +38,55 @@ public class TicketConcurrentTest {
 	private TicketService ticketService;
 	@Autowired
 	private SalesRepository salesRepository;
+	@Autowired
+	private ShowingRepository showingRepository;
+	@Autowired
+	private MovieRepository movieRepository;
 
 	@Test
 	public void 티켓조회() {
-		Ticket build = Ticket.builder().ticketId(35426L).build();
-		Ticket build1 = Ticket.builder().ticketId(35427L).build();
-		Ticket build2 = Ticket.builder().ticketId(35428L).build();
+		List<Ticket> tickets = ticketRepository.findAll();
+		assertThat(tickets).isNotNull();
+		Ticket build = Ticket.builder().ticketId(tickets.get(0).getTicketId()).build();
+		Ticket build1 = Ticket.builder().ticketId(tickets.get(1).getTicketId()).build();
+		Ticket build2 = Ticket.builder().ticketId(tickets.get(2).getTicketId()).build();
+
 		List<Ticket> ticketList = List.of(build1,build2,build);
 		List<Sales> allByTicketIn = salesRepository.findAllByTicketIn(ticketList);
-		Assertions.assertThat(allByTicketIn.size()).isEqualTo(3);
+		assertThat(allByTicketIn.size()).isEqualTo(3);
 	}
 
 	@Test
-	@DisplayName("동시성 테스트 1000명의 유저 병렬 티켓 구매 시도")
+	@DisplayName("[소요시간 테스트] 한 건의 티켓 예매 소요시간 테스트")
+	public void limitTimeTest() {
+		//given
+		long stTime = System.currentTimeMillis();
+		System.out.println("시작시간 : " + stTime);
+		Long showingId = 8392L;
+		Showing showing = Showing.builder()
+			.showingId(showingId).build();
+		List<TicketDTO> ticketList = ticketRepository.findAllByShowing(showing)
+			.stream().map(ticket -> ticket.getTicketId())
+			.map(id -> TicketDTO.builder().ticketId(id).build())
+			.toList().subList(0,5);
+
+		//when
+		ticketService.reserve(showingId, "dbdb1114", ticketList);
+
+		//then
+		long edTime = System.currentTimeMillis();
+		System.out.println("종료시간 : " + edTime);
+		System.out.println("총 소요시간 : " + (edTime - stTime));
+	}
+
+	/**
+	 * 트래픽이 몰렸을 때 건별 소요시간을 확인해보면 어떨까
+	 * AOP에서 락 획득부터 락 해제까지 총 걸리는 시간을 리퀘스트별로 집계한다.
+	 *
+	 * 1. 별도 스레드 하나 만들어서 시작 끝 로그를 비동기적으로 남기도록
+	 * */
+	@Test
+	@DisplayName("[동시성 테스트] 1000명의 유저 티켓 동시 구매 시도")
 	public void concurrentTest() throws InterruptedException {
 		// given
 		Long showingId = 8392L;
@@ -63,7 +106,7 @@ public class TicketConcurrentTest {
 			List<TicketDTO> ticketDTOList = List.of(ticketDTO);
 			Thread.startVirtualThread(() -> {
 				try {
-					ticketService.reservation(showingId, username, ticketDTOList);
+					ticketService.reserve(showingId, username, ticketDTOList);
 				} finally {
 					latch.countDown(); // 스레드 작업 완료 시 감소
 				}
@@ -79,10 +122,10 @@ public class TicketConcurrentTest {
 		resultTicketList.forEach(ticket -> System.out.println(ticket.getTicketStatus()));
 
 		boolean isAllReserved = resultTicketList.stream().anyMatch(ticket -> ticket.getTicketStatus() != TicketStatus.RESERVED);
-		Assertions.assertThat(isAllReserved).isFalse();
+		assertThat(isAllReserved).isFalse();
 
 		List<Sales> salesResultList = salesRepository.findAllByTicketIn(resultTicketList);
-		Assertions.assertThat(salesResultList.size()).isEqualTo(resultTicketList.size());
+		assertThat(salesResultList.size()).isEqualTo(resultTicketList.size());
 	}
 
 }

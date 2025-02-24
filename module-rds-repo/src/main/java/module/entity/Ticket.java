@@ -45,8 +45,7 @@ public class Ticket extends BaseEntity{
 
 	// @Version
 	// private Integer version;
-
-	public void setTicketStatus(TicketStatus ticketStatus) {
-		this.ticketStatus = ticketStatus;
+	public void reserve(){
+		this.ticketStatus = TicketStatus.RESERVED;
 	}
 }

@@ -87,9 +87,9 @@ public class TicketServiceTest {
 			.toList().subList(0, 5);
 
 		//when
-		printMessage("ticketService.reservation start");
-		ticketService.reservation(showingId, username, ticketList);
-		printMessage("ticketService.reservation end");
+		printMessage("ticketService.reserve start");
+		ticketService.reserve(showingId, username, ticketList);
+		printMessage("ticketService.reserve end");
 
 
 		//then
@@ -115,12 +115,12 @@ public class TicketServiceTest {
 		String username = "invalidName";
 
 		//then
-		printMessage("ticketService.reservation start");
+		printMessage("ticketService.reserve start");
 		Assertions.assertThatThrownBy(() ->
-				ticketService.reservation(showingId, username, ticketList))
+				ticketService.reserve(showingId, username, ticketList))
 			.isInstanceOf(BusinessException.class)
 			.hasMessage(BusinessError.USER_NOT_FOUNT.getMessage());
-		printMessage("ticketService.reservation end");
+		printMessage("ticketService.reserve end");
 
 	}
 
@@ -141,13 +141,13 @@ public class TicketServiceTest {
 		ticketList.get(0).setTicketId(Long.MAX_VALUE);
 
 		//then
-		printMessage("ticketService.reservation start");
+		printMessage("ticketService.reserve start");
 		assertThatThrownBy(() ->
-				ticketService.reservation(showingId, username, ticketList))
+				ticketService.reserve(showingId, username, ticketList))
 			.isInstanceOf(BusinessException.class)
 			.hasMessage(BusinessError.RESERVATION_INVALID_TICKET.exception().getMessage());
 
-		printMessage("ticketService.reservation end");
+		printMessage("ticketService.reserve end");
 	}
 
 	@Test
@@ -166,12 +166,12 @@ public class TicketServiceTest {
 			.toList().subList(0, 10);
 
 		//then
-		printMessage("ticketService.reservation start");
+		printMessage("ticketService.reserve start");
 		assertThatThrownBy(() ->
-				ticketService.reservation(showingId, username, ticketList))
+				ticketService.reserve(showingId, username, ticketList))
 			.isInstanceOf(BusinessException.class)
 			.hasMessage(BusinessError.RESERVATION_TOO_MANY_RESERVATION.getMessage());
-		printMessage("ticketService.reservation end");
+		printMessage("ticketService.reserve end");
 	}
 
 	@Test
@@ -186,7 +186,7 @@ public class TicketServiceTest {
 			.stream().map(ticket -> ticket.getTicketId())
 			.map(id -> TicketDTO.builder().ticketId(id).build())
 			.toList().subList(0, 3);
-		ticketService.reservation(showingId, username, firstTicketList);
+		ticketService.reserve(showingId, username, firstTicketList);
 
 		//when
 		List<TicketDTO> secondTicketList = ticketRepository.findAllByShowing(showing)
@@ -195,12 +195,12 @@ public class TicketServiceTest {
 			.toList().subList(3, 6);
 
 		//then
-		printMessage("ticketService.reservation start");
+		printMessage("ticketService.reserve start");
 		assertThatThrownBy(() ->
-				ticketService.reservation(showingId, username, secondTicketList))
+				ticketService.reserve(showingId, username, secondTicketList))
 			.isInstanceOf(BusinessException.class)
 			.hasMessage(BusinessError.RESERVATION_TOO_MANY_RESERVATION.getMessage());
-		printMessage("ticketService.reservation end");
+		printMessage("ticketService.reserve end");
 	}
 
 	@Test
@@ -223,7 +223,7 @@ public class TicketServiceTest {
 		mixedDTOList.addAll(ticketDTOList.subList(8,10));
 
 		//then
-		assertThatThrownBy(()->ticketService.reservation(showingId,username,mixedDTOList))
+		assertThatThrownBy(()->ticketService.reserve(showingId,username,mixedDTOList))
 			.isInstanceOf(BusinessException.class)
 			.hasMessage(BusinessError.RESERVATION_INVALID_SEAT_CONDITION.getMessage());
 	}
@@ -251,7 +251,7 @@ public class TicketServiceTest {
 			.toList().subList(0,5);
 
 		//then
-		assertThatThrownBy(()->ticketService.reservation(showingId,childName,ticketDTOList))
+		assertThatThrownBy(()->ticketService.reserve(showingId,childName,ticketDTOList))
 			.isInstanceOf(BusinessException.class)
 			.hasMessage(BusinessError.RESERVATION_INVALID_AGE_FOR_MOVIE.getMessage());
 	}

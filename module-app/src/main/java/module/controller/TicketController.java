@@ -44,7 +44,7 @@ public class TicketController {
 		return ResponseEntity.ok(ticketService.getUserTicket(username));
 	}
 
-	@PostMapping(value = "/reservation")
+	@PostMapping(value = "/reserve")
 	@RateLimitWith(rateLimiter = TicketReservationRateLimiter.class, postProcess = true)
 	public ResponseEntity<String> reservation(
 		@RequestBody TicketReservationRequest request
@@ -52,6 +52,6 @@ public class TicketController {
 		Long showingId = request.getShowingId();
 		String username = request.getUsername();
 		List<TicketDTO> ticketList = request.getTicketList();
-		return ResponseEntity.ok(ticketService.reservation(showingId, username, ticketList));
+		return ResponseEntity.ok(ticketService.reserve(showingId, username, ticketList));
 	}
 }
